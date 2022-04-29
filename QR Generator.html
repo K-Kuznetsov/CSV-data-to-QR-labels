@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Untitled Document</title>
+    <script src="https://code.jquery.com/jquery-3.5.1.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    <style type="text/css">
+
+        body{width : 210mm;}
+        .container{margin: 14.3mm 8.25mm 14.3mm 8.25mm; height:270.4mm; display : inline-block;}
+        .label{background-color: white; width : 64.5mm; height : 33.8mm; float : left ;}
+        img{width : 26mm; height : 26mm; margin : 4mm; float : left;}
+        h3{font-size: 12px; font-weight : bold; padding: 0;}
+        p{font-size: 10px; font-weight : bold; padding: 0;}
+
+    </style>
+</head>
+<body>
+<script>
+
+    const csvData = prompt("Paste CSV text here.");
+    const parseResult = Papa.parse(csvData, { header: true, skipEmptyLines: true});
+
+    const PartNumber = []; /* Column in the CSV data to be pushed into an array. Same with the next 3. */
+    const Kogus = [];
+    const OstuID = [];
+    const ScoroID = [];
+
+    const container = document.createElement('div');
+    const label = document.createElement('div');
+    const img = document.createElement('img');
+    const h3 = document.createElement('h3');
+    const p = document.createElement('p');
+
+    const currLbl = [0,]; /* The current label ID */
+    const newLbl = [1,]; /* Clone label ID */
+    const currCont = [0,]; /* The current container ID */
+    const newCont = [1,]; /* Clone container ID */
+    let x = 0; /* Index of the container ID. */
+    let y = 0; /* Index of the label ID. */
+
+    function createExample(){ /* Creates one container and one label with all contents. */
+        document.body.appendChild(container).setAttribute("id", "Container" + currCont[x]);
+        document.getElementById("Container" + currCont[x]).setAttribute("class", "container");
+        document.getElementById("Container" + currCont[x]).appendChild(label).setAttribute('id', 'Label' + currLbl[y]);
+        document.getElementById('Label' + currLbl[y]).setAttribute("class", "label");
+        document.getElementById('Label' + currLbl[y]).appendChild(img).setAttribute('id', 'Image' + currLbl[y]);
+        document.getElementById('Label' + currLbl[y]).appendChild(h3).setAttribute('id', 'Content' + currLbl[y]);
+        document.getElementById('Label' + currLbl[y]).appendChild(p).setAttribute('id', 'Signature' + currLbl[y]);
+    }
+
+    function cloneLabel(){ /* Clones every element of the label and changes the ID. */
+
+        const lbl = document.getElementById('Label' + currLbl[y]);
+        const clonelbl = lbl.cloneNode(false);
+        clonelbl.id = 'Label' + newLbl[y];
+        document.getElementById('Container' + currCont[x]).appendChild(clonelbl);
+
+        const qr = document.getElementById('Image' + currLbl[y]);
+        const cloneqr = qr.cloneNode(false);
+        cloneqr.id = 'Image' + newLbl[y];
+        document.getElementById('Label' + newLbl[y]).appendChild(cloneqr);
+
+        const H3 = document.getElementById('Content' + currLbl[y]);
+        const cloneh3 = H3.cloneNode(false);
+        cloneh3.id = 'Content' + newLbl[y];
+        document.getElementById('Label' + newLbl[y]).appendChild(cloneh3);
+
+        const sign = document.getElementById('Signature' + currLbl[y]);
+        const clonesign = sign.cloneNode(false);
+        clonesign.id = 'Signature' + newLbl[y];
+        document.getElementById('Label' + newLbl[y]).appendChild(clonesign);
+
+        currLbl.push(y + 1);
+        newLbl.push(y + 2);
+        y++;
+    }
+
+    function cloneContainer(){ /* Clones a container and changes the ID of the clone. */
+        const cont = document.getElementById('Container' + currCont[x]);
+        const clonecont = cont.cloneNode(false);
+        clonecont.id = 'Container' + newCont[x];
+        document.body.appendChild(clonecont);
+        currCont.push(x + 1);
+        newCont.push(x + 2);
+        x++;
+    }
+
+    function readCSV(){ /* Turns the CSV data into rows and then arrays. */
+        for (let row of parseResult.data){
+            PartNumber.push(row["PartNumber"]);
+            Kogus.push(row["Kogus"]);
+            OstuID.push(row["OstuID"]);
+            ScoroID.push(row["ScoroID"]);
+        }
+    }
+
+    function generatePages(){ /* Creates a container, a label and then clones them to create the desired amount of labels. */
+
+        if (PartNumber.length <= 24){
+            createExample();
+            for (let a = 0; a < (PartNumber.length - 1); a++){ /* Fill first page. */
+                cloneLabel();
+            }
+        }
+        if (PartNumber.length > 24){ /*if there are more than 24 labels.*/
+            createExample();
+            for (let a = 0; a < 23; a++){ /* Fill first page. */
+                cloneLabel();
+            }
+
+            let c = 0; /* While loop duration. */
+            let b = Math.floor(PartNumber.length / 24); /* How many pages can be filled with labels. */
+
+            while (c < (b - 1)){ /* Loop while there are pages to fill. */
+            cloneContainer();
+            for (let a = 0; a < 24; a++){ /* Fill pages completely. */
+                cloneLabel();
+            }
+            c++;
+            }
+            if (PartNumber.length - (b * 24) > 0){ /* If the last page will be partially filled. */
+            cloneContainer();
+            for (let a = 0; a < (PartNumber.length - (b * 24)); a++){ /* Fill the last page with the remaining amount of labels. */
+                cloneLabel();}
+            }
+        }
+    }
+
+    function generateContent(){
+        for (let i = 0; i < PartNumber.length; i++){
+            finalURL = "https://chart.googleapis.com/chart?cht=qr&chl=" +
+                "https://mdsc.scoro.ee/purchaseOrders/view/" + OstuID[i] +
+                "&chs=160x160&chld=L|0"; /* Creates QR code to access the order page. */
+            $('#Image' + i).attr('src', finalURL); /* Puts the QR code into the image element. */
+            document.getElementById("Content" + i).innerHTML = PartNumber[i] + '<br>' +
+                "Kogus: " + Kogus[i] + '<br>' + "ScoroID: " + ScoroID[i] + '<br>' +
+                "OstuID: " + OstuID[i]; /* Prints the order details onto the label. */
+            document.getElementById("Signature" + i).innerHTML = "MDSC Systems, Kukermiidi 8";
+        }
+    }
+
+    readCSV();
+    generatePages();
+    generateContent();
+
+</script>
+</body>
+</html>
